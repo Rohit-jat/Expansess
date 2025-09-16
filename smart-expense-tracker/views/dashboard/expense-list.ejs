@@ -1,0 +1,35 @@
+<div class="list-container">
+  <h2>Your Expenses</h2>
+  <% if (expenses.length === 0) { %>
+    <p>No expenses yet. <a href="/add-expense">Add one</a>.</p>
+  <% } else { %>
+    <table class="expenses-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% expenses.forEach(expense => { %>
+          <tr>
+            <td><%= new Date(expense.date).toLocaleDateString() %></td>
+            <td>$<%= expense.amount.toFixed(2) %></td>
+            <td><%= expense.category.charAt(0).toUpperCase() + expense.category.slice(1) %></td>
+            <td><%= expense.description || 'N/A' %></td>
+            <td>
+              <form action="/api/expenses/<%= expense._id %>/delete" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this expense?')">Delete</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+  <a href="/add-expense" class="btn btn-primary">Add New Expense</a>
+  <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+</div>

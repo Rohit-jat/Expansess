@@ -1,0 +1,37 @@
+<div class="report-container">
+  <h2>Generate Insights Report</h2>
+  <form id="reportForm">
+    <div class="form-group">
+      <p>Generate a comprehensive PDF report of your expenses including category breakdown and spending trends.</p>
+    </div>
+    <button type="submit" class="btn btn-primary">Download PDF Report</button>
+  </form>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/insights/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'download' })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'expense-report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error generating report: ' + err.message);
+    }
+  });
+});
+</script>

@@ -1,0 +1,21 @@
+<header>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <a href="<%= user ? '/dashboard' : '/' %>">Smart Expense Tracker</a>
+    </div>
+    <div class="nav-links">
+      <% if (user) { %>
+        <span>Welcome, <%= user.username %>!</span>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/add-expense">Add Expense</a>
+        <a href="/expenses">View Expenses</a>
+        <a href="/charts">Analytics</a>
+        <a href="/reports">Reports</a>
+        <a href="/logout">Logout</a>
+      <% } else { %>
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+      <% } %>
+    </div>
+  </nav>
+</header>
