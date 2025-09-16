@@ -1,0 +1,500 @@
+<div class="charts-container">
+  <h2>Expense Charts - Chart.js</h2>
+  
+  <!-- Period Toggle -->
+  <div class="chart-controls">
+    <label for="periodToggle">View Period:</label>
+    <select id="periodToggle" class="period-selector">
+      <option value="monthly" selected>Monthly</option>
+      <option value="weekly">Weekly</option>
+    </select>
+    <button id="refreshChart" class="btn btn-primary">Refresh</button>
+  </div>
+
+  <!-- Chart Section -->
+  <div class="chart-section">
+    <h3 id="chartTitle">Monthly Expense Trends</h3>
+    <div class="chart-wrapper">
+      <canvas id="expenseChart" width="400" height="200"></canvas>
+    </div>
+    <div id="chartLoading" class="loading-state" style="display: none;">
+      <p>📊 Loading chart data...</p>
+    </div>
+    <div id="chartError" class="error-state" style="display: none;">
+      <p>❌ Error loading chart data</p>
+      <button onclick="loadChartData()" class="btn btn-primary">Retry</button>
+    </div>
+  </div>
+
+  <!-- Expenses Table -->
+  <div class="table-section">
+    <h3>Recent Expenses</h3>
+    <div class="table-controls">
+      <p id="tableInfo">Showing recent expenses...</p>
+    </div>
+    <div class="table-wrapper">
+      <table id="expensesTable" class="expenses-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="expensesTableBody">
+          <tr>
+            <td colspan="4" class="no-data">Loading expenses...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="chart-actions">
+    <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    <a href="/add-expense" class="btn btn-primary">Add New Expense</a>
+  </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.charts-container {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+}
+
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.period-selector {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.chart-section {
+  margin-bottom: 3rem;
+}
+
+.chart-section h3 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+  margin-bottom: 1rem;
+}
+
+.loading-state, .error-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.error-state p {
+  color: #dc3545;
+  margin-bottom: 1rem;
+}
+
+.table-section {
+  margin-bottom: 2rem;
+}
+
+.table-section h3 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.table-controls {
+  margin-bottom: 1rem;
+}
+
+.table-controls p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.expenses-table th,
+.expenses-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.expenses-table th {
+  background: #f8f9fa;
+  font-weight: bold;
+  color: #333;
+}
+
+.expenses-table .no-data {
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.expenses-table .amount {
+  font-weight: bold;
+  color: #007bff;
+}
+
+.expenses-table .category {
+  background: #e9ecef;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.chart-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .chart-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .chart-actions {
+    flex-direction: column;
+  }
+  
+  .expenses-table th,
+  .expenses-table td {
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+</style>
+
+<script>
+// Chart.js implementation for expense tracking
+let expenseChart = null;
+let currentPeriod = 'monthly';
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Chart.js page loaded, initializing...');
+  initializeChartPage();
+});
+
+function initializeChartPage() {
+  // Set up event listeners
+  const periodToggle = document.getElementById('periodToggle');
+  const refreshButton = document.getElementById('refreshChart');
+
+  if (periodToggle) {
+    periodToggle.addEventListener('change', (e) => {
+      currentPeriod = e.target.value;
+      updateChartTitle();
+      loadChartData();
+    });
+  }
+
+  if (refreshButton) {
+    refreshButton.addEventListener('click', () => {
+      loadChartData();
+    });
+  }
+
+  // Load initial data
+  loadChartData();
+}
+
+function updateChartTitle() {
+  const chartTitle = document.getElementById('chartTitle');
+  if (chartTitle) {
+    chartTitle.textContent = currentPeriod === 'weekly' ? 'Weekly Expense Trends' : 'Monthly Expense Trends';
+  }
+}
+
+async function loadChartData() {
+  console.log(`Loading Chart.js data for period: ${currentPeriod}`);
+  
+  try {
+    showLoadingState();
+
+    const response = await fetch(`/api/expenses/chartjs-data?period=${currentPeriod}`, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    console.log(`Chart.js API response status: ${response.status}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chart data: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Chart.js data received:', data);
+
+    // Render chart and table
+    renderExpenseChart(data.chartData);
+    renderExpensesTable(data.tableData);
+    hideLoadingState();
+
+  } catch (error) {
+    console.error('Error loading Chart.js data:', error);
+    showErrorState(error.message);
+  }
+}
+
+function renderExpenseChart(chartData) {
+  const canvas = document.getElementById('expenseChart');
+  const ctx = canvas.getContext('2d');
+
+  // Destroy existing chart if it exists
+  if (expenseChart) {
+    expenseChart.destroy();
+  }
+
+  // Handle empty data
+  if (!chartData.labels || chartData.labels.length === 0) {
+    showNoDataChart();
+    return;
+  }
+
+  // Create new chart
+  expenseChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: [{
+        label: 'Expenses ($)',
+        data: chartData.amounts,
+        borderColor: '#007bff',
+        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#007bff',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: currentPeriod === 'weekly' ? 'Weekly Expense Trends' : 'Monthly Expense Trends',
+          font: {
+            size: 16,
+            weight: 'bold'
+          }
+        },
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Amount ($)'
+          },
+          ticks: {
+            callback: function(value) {
+              return '$' + value.toFixed(2);
+            }
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Period'
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      hover: {
+        animationDuration: 300
+      },
+      animation: {
+        duration: 1000,
+        easing: 'easeInOutQuart'
+      }
+    }
+  });
+
+  console.log('Chart.js chart rendered successfully');
+}
+
+function renderExpensesTable(expenses) {
+  const tableBody = document.getElementById('expensesTableBody');
+  const tableInfo = document.getElementById('tableInfo');
+  
+  if (!tableBody) return;
+
+  if (!expenses || expenses.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="4" class="no-data">No expenses found</td></tr>';
+    if (tableInfo) {
+      tableInfo.textContent = 'No expenses to display';
+    }
+    return;
+  }
+
+  let html = '';
+  expenses.forEach(expense => {
+    html += `
+      <tr>
+        <td>${expense.date}</td>
+        <td>${expense.description}</td>
+        <td><span class="category">${expense.category}</span></td>
+        <td class="amount">$${expense.amount.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = html;
+  
+  if (tableInfo) {
+    tableInfo.textContent = `Showing ${expenses.length} recent expenses`;
+  }
+}
+
+function showLoadingState() {
+  const chartWrapper = document.querySelector('.chart-wrapper');
+  const loadingDiv = document.getElementById('chartLoading');
+  const errorDiv = document.getElementById('chartError');
+  
+  if (chartWrapper) chartWrapper.style.display = 'none';
+  if (errorDiv) errorDiv.style.display = 'none';
+  if (loadingDiv) loadingDiv.style.display = 'flex';
+}
+
+function hideLoadingState() {
+  const chartWrapper = document.querySelector('.chart-wrapper');
+  const loadingDiv = document.getElementById('chartLoading');
+  const errorDiv = document.getElementById('chartError');
+  
+  if (loadingDiv) loadingDiv.style.display = 'none';
+  if (errorDiv) errorDiv.style.display = 'none';
+  if (chartWrapper) chartWrapper.style.display = 'block';
+}
+
+function showErrorState(message) {
+  const chartWrapper = document.querySelector('.chart-wrapper');
+  const loadingDiv = document.getElementById('chartLoading');
+  const errorDiv = document.getElementById('chartError');
+  
+  if (chartWrapper) chartWrapper.style.display = 'none';
+  if (loadingDiv) loadingDiv.style.display = 'none';
+  if (errorDiv) {
+    errorDiv.style.display = 'flex';
+    const errorMessage = errorDiv.querySelector('p');
+    if (errorMessage) {
+      errorMessage.textContent = `❌ Error loading chart data: ${message}`;
+    }
+  }
+}
+
+function showNoDataChart() {
+  const canvas = document.getElementById('expenseChart');
+  const ctx = canvas.getContext('2d');
+
+  // Destroy existing chart if it exists
+  if (expenseChart) {
+    expenseChart.destroy();
+  }
+
+  // Create empty chart with message
+  expenseChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: []
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'No expense data available',
+          font: {
+            size: 16,
+            weight: 'bold'
+          }
+        }
+      },
+      layout: {
+        padding: 20
+      }
+    },
+    plugins: [{
+      id: 'noDataMessage',
+      afterDraw: function(chart) {
+        const ctx = chart.ctx;
+        const width = chart.width;
+        const height = chart.height;
+        
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#666';
+        ctx.fillText('📊 No expense data available for the selected period', width / 2, height / 2);
+        ctx.font = '14px Arial';
+        ctx.fillText('Add some expenses to see your spending trends', width / 2, height / 2 + 30);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// Cleanup chart when page unloads
+window.addEventListener('beforeunload', () => {
+  if (expenseChart) {
+    expenseChart.destroy();
+  }
+});
+</script>

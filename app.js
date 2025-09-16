@@ -100,6 +100,80 @@ app.get('/dashboard', authMiddleware, async (req, res) => {
   });
 });
 
+// API for Chart.js expenses data
+app.get('/api/expenses/chartjs-data', authMiddleware, async (req, res) => {
+  try {
+    const period = req.query.period || 'monthly'; // 'weekly' or 'monthly'
+    console.log(`Chart.js data requested for period: ${period}`);
+    
+    // Validate period
+    if (!['weekly', 'monthly'].includes(period)) {
+      return res.status(400).json({ error: 'Invalid period. Must be "weekly" or "monthly"' });
+    }
+    
+    const dateGroup = period === 'weekly' 
+      ? { year: { $year: '$date' }, week: { $week: '$date' } }
+      : { year: { $year: '$date' }, month: { $month: '$date' } };
+
+    // Get aggregated data for chart
+    const chartData = await Expense.aggregate([
+      { $match: { userId: req.user._id } },
+      { 
+        $group: { 
+          _id: dateGroup, 
+          total: { $sum: '$amount' },
+          count: { $sum: 1 }
+        } 
+      },
+      { $sort: { '_id.year': 1, '_id.week': 1, '_id.month': 1 } }
+    ]);
+    
+    // Get individual expenses for table
+    const expenses = await Expense.find({ userId: req.user._id })
+      .sort({ date: -1 })
+      .limit(50); // Limit to recent 50 expenses
+    
+    // Format chart data for Chart.js
+    const labels = [];
+    const amounts = [];
+    
+    chartData.forEach(item => {
+      let label;
+      if (period === 'weekly') {
+        label = `Week ${item._id.week}, ${item._id.year}`;
+      } else {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        label = `${months[item._id.month - 1]} ${item._id.year}`;
+      }
+      labels.push(label);
+      amounts.push(item.total);
+    });
+    
+    // Format expenses for table
+    const formattedExpenses = expenses.map(expense => ({
+      date: expense.date.toISOString().split('T')[0],
+      description: expense.description,
+      amount: expense.amount,
+      category: expense.category
+    }));
+    
+    res.json({
+      chartData: {
+        labels,
+        amounts
+      },
+      tableData: formattedExpenses,
+      period: period,
+      totalExpenses: expenses.length
+    });
+    
+  } catch (error) {
+    console.error('Chart.js data API error:', error);
+    res.status(500).json({ error: 'Failed to fetch chart data' });
+  }
+});
+
 // Dashboard analytics API endpoint
 app.get('/dashboard/analytics', authMiddleware, async (req, res) => {
   try {
@@ -140,6 +214,14 @@ app.get('/expenses', authMiddleware, async (req, res) => {
     title: 'Expenses', 
     user: req.user, 
     expenses 
+  });
+});
+
+app.get('/charts-chartjs', authMiddleware, (req, res) => {
+  res.render('layouts/main', { 
+    body: 'dashboard/charts-chartjs', 
+    title: 'Charts - Chart.js', 
+    user: req.user 
   });
 });
 
@@ -187,6 +269,14 @@ app.get('/charts', authMiddleware, async (req, res) => {
       res.status(500).render('500', { title: '500 - Server Error' });
     }
   }
+});
+
+app.get('/insights', authMiddleware, (req, res) => {
+  res.render('layouts/main', { 
+    body: 'dashboard/insights', 
+    title: 'Weekly/Monthly Insights', 
+    user: req.user 
+  });
 });
 
 app.get('/reports', authMiddleware, (req, res) => {

@@ -38,28 +38,54 @@ router.get('/trends', async (req, res) => {
   try {
     console.log('Trends API called for user:', req.user._id);
     const period = req.query.period || 'monthly'; // 'weekly' or 'monthly'
+    
+    // Validate period parameter
+    if (!['weekly', 'monthly'].includes(period)) {
+      return res.status(400).json({ error: 'Invalid period. Must be "weekly" or "monthly"' });
+    }
+    
     const dateGroup = period === 'weekly' 
       ? { year: { $year: '$date' }, week: { $week: '$date' } }
       : { year: { $year: '$date' }, month: { $month: '$date' } };
+
+    // Set date range based on period (last 52 weeks or 12 months)
+    const weeksBack = 52;
+    const monthsBack = 12;
+    const daysBack = period === 'weekly' ? weeksBack * 7 : monthsBack * 30;
+    const dateThreshold = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
     const pipeline = [
       { 
         $match: { 
           userId: req.user._id, 
-          date: { $gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) } // Last year
+          date: { $gte: dateThreshold }
         } 
       },
       { 
         $group: { 
           _id: dateGroup, 
-          total: { $sum: '$amount' } 
+          total: { $sum: '$amount' },
+          count: { $sum: 1 }
         } 
       },
       { $sort: { '_id.year': 1, '_id.week': 1, '_id.month': 1 } }
     ];
+    
     const trends = await Expense.aggregate(pipeline);
-    console.log('Trends result:', trends);
-    res.json(trends);
+    console.log(`Trends result for ${period}:`, trends.length, 'periods found');
+    
+    // Add metadata to response
+    const response = {
+      period: period,
+      totalPeriods: trends.length,
+      data: trends,
+      dateRange: {
+        from: dateThreshold.toISOString().split('T')[0],
+        to: new Date().toISOString().split('T')[0]
+      }
+    };
+    
+    res.json(trends); // Keep compatibility with existing frontend
   } catch (err) {
     console.error('Trends API error:', err);
     res.status(500).json({ error: 'Server error' });
