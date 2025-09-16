@@ -69,6 +69,93 @@
     .btn:hover {
       background: #388E3C;
     }
+
+    .demo-credentials {
+      background: #e8f5e8;
+      border: 2px solid #4CAF50;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .demo-credentials h3 {
+      margin: 0 0 1rem 0;
+      color: #2E7D32;
+      font-size: 1.2rem;
+    }
+
+    .credentials-box {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .credentials-box p {
+      margin: 0.5rem 0;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .credentials-box strong {
+      color: #2E7D32;
+    }
+
+    .copyable {
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #f0f8f0;
+      border: 1px solid #ddd;
+      transition: all 0.2s ease;
+      display: inline-block;
+      margin: 0 5px;
+    }
+
+    .copyable:hover {
+      background: #e8f5e8;
+      border-color: #4CAF50;
+      transform: scale(1.02);
+    }
+
+    .copy-icon {
+      font-size: 0.8rem;
+      opacity: 0.6;
+      margin-left: 5px;
+    }
+
+    .copied {
+      background: #4CAF50 !important;
+      color: white !important;
+      border-color: #388E3C !important;
+    }
+
+    .copy-feedback {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
@@ -78,8 +165,68 @@
 
   <main>
     <p>A simple tool to track your expenses smartly and efficiently.</p>
+    
+    <!-- Demo Credentials for Interviewer -->
+    <div class="demo-credentials">
+      <h3>🎯 Demo Credentials for Testing</h3>
+      <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">Click on the credentials below to copy them</p>
+      <div class="credentials-box">
+        <p><strong>Email:</strong> <span class="copyable" onclick="copyToClipboard('demo@gmail.com', this)">demo@gmail.com</span> <span class="copy-icon">📋</span></p>
+        <p><strong>Password:</strong> <span class="copyable" onclick="copyToClipboard('12345678', this)">12345678</span> <span class="copy-icon">📋</span></p>
+      </div>
+    </div>
+    
     <a href="/register" class="btn">Register</a>
     <a href="/login" class="btn">Login</a>
   </main>
+
+  <script>
+    function copyToClipboard(text, element) {
+      // Create a temporary textarea element
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      
+      // Select and copy the text
+      textarea.select();
+      document.execCommand('copy');
+      
+      // Remove the temporary element
+      document.body.removeChild(textarea);
+      
+      // Visual feedback
+      const originalText = element.textContent;
+      element.classList.add('copied');
+      element.textContent = 'Copied!';
+      
+      // Show notification
+      showCopyFeedback(`Copied: ${text}`);
+      
+      // Reset after 2 seconds
+      setTimeout(() => {
+        element.classList.remove('copied');
+        element.textContent = originalText;
+      }, 2000);
+    }
+    
+    function showCopyFeedback(message) {
+      // Remove any existing feedback
+      const existingFeedback = document.querySelector('.copy-feedback');
+      if (existingFeedback) {
+        existingFeedback.remove();
+      }
+      
+      // Create new feedback element
+      const feedback = document.createElement('div');
+      feedback.className = 'copy-feedback';
+      feedback.textContent = message;
+      document.body.appendChild(feedback);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        feedback.remove();
+      }, 3000);
+    }
+  </script>
 </body>
 </html>
