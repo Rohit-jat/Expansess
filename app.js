@@ -86,6 +86,73 @@ app.get('/register', async (req, res) => {
   });
 });
 
+app.get('/forgot-password', async (req, res) => {
+  // Check if already logged in
+  try {
+    const token = req.cookies.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+      if (user) return res.redirect('/dashboard');
+    }
+  } catch (err) {
+    // Invalid token, proceed to forgot password
+  }
+  res.render('layouts/main', { 
+    body: 'auth/forgot-password', 
+    title: 'Forgot Password', 
+    user: null, 
+    error: null 
+  });
+});
+
+app.get('/reset-password/:token', async (req, res) => {
+  // Check if already logged in
+  try {
+    const token = req.cookies.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+      if (user) return res.redirect('/dashboard');
+    }
+  } catch (err) {
+    // Invalid token, proceed to reset password
+  }
+  
+  // Verify reset token
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: req.params.token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+    
+    if (!user) {
+      return res.render('layouts/main', {
+        body: 'auth/login',
+        title: 'Login',
+        user: null,
+        error: 'Password reset token is invalid or has expired. Please request a new one.'
+      });
+    }
+    
+    res.render('layouts/main', { 
+      body: 'auth/reset-password', 
+      title: 'Reset Password', 
+      user: null, 
+      token: req.params.token,
+      error: null 
+    });
+  } catch (err) {
+    console.error('Reset password view error:', err);
+    res.render('layouts/main', {
+      body: 'auth/login',
+      title: 'Login',
+      user: null,
+      error: 'An error occurred. Please try again.'
+    });
+  }
+});
+
 app.get('/dashboard', authMiddleware, async (req, res) => {
   const totalSpent = await Expense.aggregate([
     { $match: { userId: req.user._id } },
